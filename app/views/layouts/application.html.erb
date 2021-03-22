@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>BulletinTraining</title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>
+    <%= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload' %>
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-default">
+      <div class="container">
+        <div class="navbar-header">
+          <%= link_to "Post Board" , root_path, class:'navbar-brand'%>
+        </div>
+
+        <ul class="nav navbar-nav">
+          <% if user_signed_in? %>
+            <li> <%= link_to "New Post", new_post_path %>  </li>
+            <li> <%= link_to "Sign Out", destroy_user_session_path, method: :delete %></li>
+          <% else %>
+            <li> <%=  link_to "Log in", new_user_session_path %> </li>
+            <li><%= link_to "Sign Up", new_user_registration_path %></li>
+          <% end %>
+        </ul>
+        <% if user_signed_in? %>
+          <p class="navbar-right navbar-text nvabar"> <%= current_user.email %></p>
+        <% end %>
+      </div>
+    </div>
+    <div class="container">
+      <p class="notice"><%= flash.now[notice] %></p>
+      <p class="alert"><%= flash.now[alert] %></p>
+      <%= yield %>
+      <%= render "layouts/footer" %>
+    </div>  
+  </body>
+</html>
+
+<script>
+
+<% if @post != nil %>
+    post_id = <%= @post.id %>
+<% else %>
+    post_id = 0
+<% end %>
+    view_ip = '<%= request.remote_ip %>'
+
+</script>
+
+<% if @post != nil %>
+<script type="text/javascript">
+  
+  scrollLocation = 0;
+  scrollPercent = 0;
+  x_pos = null;
+  y_pos = null;
+
+  ad_title = document.title;
+  ad_url = window.location.href;
+
+  console.log(post_id);
+  console.log(view_ip);
+  console.log(ad_url);
+  console.log(ad_title);
+
+  startTime = new Date();
+  endTime = null;
+  timeTable = new Array();
+  scrollTable = new Array();
+  btn_urls = new Array();
+  btn_texts = new Array();
+
+  currentHeight = screen.height;
+
+  currentWidth = screen.width;
+
+  var body = document.body;
+    var html = document.documentElement;
+  var height = Math.max(
+    window.innerHeight
+  );
+
+  maxHeight = currentHeight + height;
+  downHeight = height;
+
+  console.log('currentHeight: ' + currentHeight, 'currentWidth: ' + currentWidth, 'maxHeight: ' + maxHeight);
+
+  var buttons = document.getElementsByTagName("a");
+  for (var i =0; i< buttons.length; i++){
+    buttons[i].setAttribute("onclick", "mouseClick(this.id)");  
+    buttons[i].id = i;
+    if (buttons[i].firstElementChild != null) {
+      if(buttons[i].firstElementChild.tagName == 'IMG'){
+        btn_urls[i] = buttons[i].firstElementChild.getAttribute('src');
+      }
+      else {
+        btn_texts[i] = buttons[i].innerText;
+      }
+    }
+    else {
+        btn_texts[i] = buttons[i].innerText;
+    }
+
+  };
+  console.log(btn_urls)
+
+  function mouseClick(clicked_btn){
+      x_pos = event.clientX;
+      y_pos = event.clientY;
+      console.log('X:' + x_pos, 'Y: ' + y_pos, 'BTN: ' + btn_urls[clicked_btn] + btn_texts[clicked_btn]);
+
+    navigator.sendBeacon(
+      "http://localhost:8888/api/v1/articles/new?id="+15+";title="+ad_title+";url="+ad_url+";maxpos="+(height+300)
+      );
+
+
+    for (var i =0; i< timeTable.length; i++) 
+    {
+      navigator.sendBeacon("http://localhost:8888/api/v1/articles/"+15+"/scrolls/new?scroll_pos="+scrollTable[i]+";scroll_dur="+timeTable[i]);
+    };
+
+    navigator.sendBeacon(
+      "http://localhost:8888/api/v1/articles/"+15+"/clicks/new?click_x="+x_pos+";click_y="+y_pos+";btn_url="+btn_urls[clicked_btn]+";btn_text="+btn_texts[clicked_btn]+";view_ip="+123
+      );
+
+  };
+
+  window.addEventListener('scroll', function () {
+
+    if(window.scrollY > scrollLocation) {
+      scrollLocation = window.scrollY;
+      if((scrollLocation +screen.height) > currentHeight) { //checks if the user scrolled for screen.height
+        downHeight = window.scrollY;
+        endTime = new Date(); // when user scrolls for screen.height gets new date at that point
+        result = endTime - startTime; // gets the difference of startDate and screen.height -> endDate
+        startTime = endTime; // makes starDate as last endDate
+          if(scrollLocation + screen.height > height) {
+                scrollTable.push(parseInt(100));
+            }
+            else{
+            scrollTable.push(parseInt((window.scrollY + screen.height)/height*100));
+            }
+          timeTable.push(result/1000); //inserts the differences of dates
+        currentHeight = currentHeight + screen.height;
+      }
+    }   
+    else if(window.scrollY < scrollLocation){
+      scrollLocation = window.scrollY;
+      currentHeight = scrollLocation;
+      if((scrollLocation + screen.height) < downHeight) {
+        endTime = new Date();
+        result = endTime - startTime;
+        startTime = endTime;
+        downHeight = downHeight - screen.height;
+        scrollTable.push(parseInt((window.scrollY + screen.height)/height*100));
+        timeTable.push(result/1000);
+      }
+    } 
+  });
+
+  window.addEventListener('unload', function(){
+
+    navigator.sendBeacon(
+      "http://localhost:8888/api/v1/articles/new?id="+15+";title="+ad_title+";url="+ad_url+";maxpos="+(height + 300)
+      );
+
+    for (var i =0; i< timeTable.length; i++) 
+    {
+      navigator.sendBeacon("http://localhost:8888/api/v1/articles/"+15+"/scrolls/new?scroll_pos="+scrollTable[i]+";scroll_dur="+timeTable[i]);
+    };
+
+    navigator.sendBeacon(
+      "http://localhost:8888/api/v1/articles/"+15+"/clicks/new?click_x=null;click_y=null;btn_url=undefined;btn_text=undefined;view_ip="+123
+    );
+  });
+
+</script>
+
+<% end %>

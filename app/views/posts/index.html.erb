@@ -1,0 +1,14 @@
+<% @posts.each do |post| %>
+	<div class="col-md-4">
+		<div class="message">
+			<h2 class="message-title"> <%= post.title %> </h2>
+			<% if can? :read , @post %>
+				<%= link_to "View Post", post_path(post), class: "btn-custom" %>
+			<% else %>
+				<p style="color: white; font-size: 10px;"> Pls Sign in to read the post</p>
+			<% end %>
+		</div>
+	</div>
+<% end %>
+ <br>
+ <br>
